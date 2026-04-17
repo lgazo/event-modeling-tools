@@ -54,10 +54,13 @@ note 05 {
 
 gwt 01
   given
-    evt CartUpdatedEvent
+    evt CartUpdatedEvent { a: true, b: "abc" }
     evt CartUpdatedEvent
   when
-    evt ProductDescriptionUpdatedEvent
+    evt ProductDescriptionUpdatedEvent {
+      a: true,
+      "b": "hello"
+    }
     evt ProductTitleUpdatedEvent
   then
     evt ProductTitleUpdatedEvent
