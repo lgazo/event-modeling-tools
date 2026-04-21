@@ -2,6 +2,7 @@ import { type Module, inject } from 'langium';
 import { createDefaultModule, createDefaultSharedModule, type DefaultSharedModuleContext, type LangiumServices, type LangiumSharedServices, type PartialLangiumServices } from 'langium/lsp';
 import { EventModelingGeneratedModule, EventModelingGeneratedSharedModule } from './generated/module.js';
 import { EventModelingValidator, registerValidationChecks } from './event-modeling-validator.js';
+import { EventModelingTokenBuilder } from './event-modeling-token-builder.js';
 
 /**
  * Declaration of custom services - add your own service classes here.
@@ -24,6 +25,9 @@ export type EventModelingServices = LangiumServices & EventModelingAddedServices
  * selected services, while the custom services must be fully specified.
  */
 export const EventModelingModule: Module<EventModelingServices, PartialLangiumServices & EventModelingAddedServices> = {
+    parser: {
+        TokenBuilder: () => new EventModelingTokenBuilder()
+    },
     validation: {
         EventModelingValidator: () => new EventModelingValidator()
     }

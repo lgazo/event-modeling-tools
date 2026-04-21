@@ -162,6 +162,118 @@ tf 03 evt Cart.ItemAdded
     expect(frame.entityIdentifier).toBe('Product.PriceChanged');
   });
 
+  test('should parse data block with nested braces', async () => {
+    document = await parse(`eventmodeling
+data Foo {
+  a: {
+    b: true
+  }
+}
+`);
+    expect(checkDocumentValid(document)).toBeUndefined();
+
+    const { parseResult } = document;
+    expect(parseResult.value.dataEntities.length).toBe(1);
+    const entity = parseResult.value.dataEntities[0];
+    expect(entity.name).toBe('Foo');
+    const closeIdx = entity.dataBlockValue.lastIndexOf('}');
+    const opens = (entity.dataBlockValue.slice(0, closeIdx + 1).match(/\{/g) || []).length;
+    const closes = (entity.dataBlockValue.slice(0, closeIdx + 1).match(/\}/g) || []).length;
+    expect(opens).toBe(closes);
+    expect(opens).toBe(2);
+  });
+
+  test('should parse data block with deeply nested braces and siblings', async () => {
+    document = await parse(`eventmodeling
+data Bar {
+  a: {
+    b: {
+      c: 1
+    },
+    d: 2
+  }
+}
+`);
+    expect(checkDocumentValid(document)).toBeUndefined();
+    const entity = document.parseResult.value.dataEntities[0];
+    expect(entity.name).toBe('Bar');
+    expect(entity.dataBlockValue).toContain('d: 2');
+    const opens = (entity.dataBlockValue.match(/\{/g) || []).length;
+    const closes = (entity.dataBlockValue.match(/\}/g) || []).length;
+    expect(opens).toBe(closes);
+    expect(opens).toBe(3);
+  });
+
+  test('should parse inline payload with nested object containing string with brace', async () => {
+    document = await parse(`eventmodeling
+tf 01 evt Start
+tf 07 evt X ->> 01 { "a": { "c": "}" }, "b": true }
+`);
+    expect(checkDocumentValid(document)).toBeUndefined();
+    const frame = document.parseResult.value.frames[1];
+    expect(frame.dataInlineValue).toBe('{ "a": { "c": "}" }, "b": true }');
+  });
+
+  test('should parse gwt statements with multiline nested data blocks', async () => {
+    document = await parse(`eventmodeling
+tf 01 evt Start
+tf 02 evt Done
+
+gwt 01 "nested gwt payloads"
+  given
+    evt Start \`jsobj\` {
+      a: {
+        b: {
+          c: 1
+        },
+        d: 2
+      }
+    }
+  when
+    evt Done {
+      outer: {
+        inner: true
+      }
+    }
+  then
+    evt Done {
+      result: {
+        ok: "}"
+      }
+    }
+`);
+    expect(checkDocumentValid(document)).toBeUndefined();
+
+    const gwt = document.parseResult.value.gwtEntities[0];
+    expect(gwt.givenStatements.length).toBe(1);
+    expect(gwt.whenStatements?.length).toBe(1);
+    expect(gwt.thenStatements.length).toBe(1);
+
+    const given = gwt.givenStatements[0];
+    expect(given.entityIdentifier).toBe('Start');
+    expect(given.dataType).toBe('jsobj');
+    expect(given.dataBlockValue).toContain('d: 2');
+    const givenOpens = (given.dataBlockValue!.match(/\{/g) || []).length;
+    const givenCloses = (given.dataBlockValue!.match(/\}/g) || []).length;
+    expect(givenOpens).toBe(givenCloses);
+    expect(givenOpens).toBe(3);
+
+    const when = gwt.whenStatements![0];
+    expect(when.dataBlockValue).toContain('inner: true');
+
+    const then = gwt.thenStatements[0];
+    expect(then.dataBlockValue).toContain('ok: "}"');
+  });
+
+  test('should fail to parse unbalanced inline payload', async () => {
+    document = await parse(`eventmodeling
+tf 01 evt Start
+tf 02 evt Bad ->> 01 { "a": { }
+`);
+    const errs = document.parseResult.parserErrors.length + document.parseResult.lexerErrors.length;
+    expect(errs).toBeGreaterThan(0);
+  });
+
   test('should parse multiple source frames model', async () => {
     document = await parse(`eventmodeling
 tf 01 evt Start
