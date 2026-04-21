@@ -52,7 +52,7 @@ note 05 {
   On multiple lines
 }
 
-gwt 01
+gwt 01 "user adds item to cart"
   given
     evt CartUpdatedEvent { a: true, b: "abc" }
     evt CartUpdatedEvent
@@ -66,7 +66,7 @@ gwt 01
     evt ProductTitleUpdatedEvent
 
 
-gwt 03
+gwt 03 'cart already populated'
   given
     evt CartUpdatedEvent
     evt ProductTitleUpdatedEvent
@@ -84,6 +84,25 @@ gwt 03
     expect(parseResult.value.dataEntities.length).toBe(3);
     expect(parseResult.value.noteEntities.length).toBe(2);
     expect(parseResult.value.gwtEntities.length).toBe(2);
+    expect(parseResult.value.gwtEntities[0].label).toBe('"user adds item to cart"');
+    expect(parseResult.value.gwtEntities[1].label).toBe("'cart already populated'");
+  });
+
+  test('should parse gwt without label', async () => {
+    document = await parse(`eventmodeling
+tf 01 evt Start
+
+gwt 01
+  given
+    evt Start
+  then
+    evt Start
+`);
+    expect(checkDocumentValid(document)).toBeUndefined();
+
+    const { parseResult } = document;
+    expect(parseResult.value.gwtEntities.length).toBe(1);
+    expect(parseResult.value.gwtEntities[0].label).toBeUndefined();
   });
 
 

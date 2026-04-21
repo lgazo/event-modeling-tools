@@ -17,7 +17,7 @@ EmModelEntityType returns string:
 EmDataType returns string:
     'json' | 'jsobj' | 'figma' | 'salt' | 'uri' | 'md' | 'html' | 'text';
 
-fragment EmDataInline: ('`' dataType=EmDataType '`')? dataInlineValue=EM_DATA_INLINE;
+fragment EmDataInline: ('`' dataType=EmDataType '`')? (dataInlineValue=EM_DATA_INLINE | dataInlineValue=EM_STRING);
 
 fragment EmDataBlock: ('`' dataType=EmDataType '`')? dataBlockValue=EM_DATA_BLOCK;
 
@@ -43,7 +43,7 @@ EmNoteEntity:
     'note' sourceFrame=[EmFrame:EM_FI] EmDataBlock;
 
 EmGwt:
-    'gwt' sourceFrame=[EmFrame:EM_FI] 'given' givenStatements+=EmGwtStatement+ ('when' whenStatements+=EmGwtStatement+)? 'then' thenStatements+=EmGwtStatement+;
+    'gwt' sourceFrame=[EmFrame:EM_FI] (label=EM_STRING)? 'given' givenStatements+=EmGwtStatement+ ('when' whenStatements+=EmGwtStatement+)? 'then' thenStatements+=EmGwtStatement+;
 
 EmGwtStatement:
     EmModelEntityType entityIdentifier=QualifiedName (EmDataBlock | EmDataInline)?;
@@ -54,7 +54,8 @@ EM_FI returns string: EM_FID;
 terminal EM_ID: /[_a-zA-Z][\w_]*/;
 terminal EM_FID: /\d{1,3}/;
 
-terminal EM_DATA_INLINE: /\{(.*)\}|"(.*)"|'(.*)'/;
+terminal EM_DATA_INLINE: /\{(.*)\}/;
+terminal EM_STRING: /"(.*)"|'(.*)'/;
 terminal EM_DATA_BLOCK: /\{[\t ]*\r?\n(?:[\S\s]*?\r?\n)?[\t ]*\}(?:\r?\n|(?!\S))/;
 
 terminal EM_ACC_DESCR: /[\t ]*accDescr(?:[\t ]*:([^\n\r]*?(?=%%)|[^\n\r]*)|\s*{([^}]*)})/;
