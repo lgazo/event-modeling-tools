@@ -46,7 +46,7 @@ EmGwt:
     'gwt' sourceFrame=[EmFrame:EM_FI] (label=EM_STRING)? 'given' givenStatements+=EmGwtStatement+ ('when' whenStatements+=EmGwtStatement+)? 'then' thenStatements+=EmGwtStatement+;
 
 EmGwtStatement:
-    EmModelEntityType entityIdentifier=QualifiedName (EmDataBlock | EmDataInline)?;
+    modelEntityType=EmModelEntityType entityIdentifier=QualifiedName (EmDataBlock | EmDataInline)?;
 
 EM_EID returns string: EM_ID;
 EM_FI returns string: EM_FID;

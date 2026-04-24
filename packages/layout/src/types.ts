@@ -29,6 +29,15 @@ export interface DiagramProps {
   labelCommandReadModelPrefix: string;
   labelEvents: string;
   labelEventsPrefix: string;
+  gwtBandGap: number;
+  gwtScenarioPadding: number;
+  gwtScenarioGap: number;
+  gwtStatementGap: number;
+  gwtSectionLabelHeight: number;
+  gwtScenarioMinWidth: number;
+  gwtScenarioHeaderHeight: number;
+  gwtStatementVerticalPadding: number;
+  gwtDefaultScenarioLabel: string;
 }
 
 /**
@@ -94,13 +103,40 @@ export interface Relation {
   targetBox: Box;
 }
 
+export type GwtSectionKind = 'given' | 'when' | 'then';
+
+export interface GwtStatementBox {
+  kind: GwtSectionKind;
+  modelEntityType: string;
+  entityIdentifier: string;
+  contentHtml: string;
+  dimension: Dimension;
+  visual: VisualProps;
+}
+
+export interface GwtScenario {
+  label?: string;
+  dimension: Dimension;
+  statements: GwtStatementBox[];
+}
+
+export interface GwtColumn {
+  sourceFrameName: string;
+  x: number;
+  y: number;
+  dimension: Dimension;
+  scenarios: GwtScenario[];
+}
+
 export interface Context {
   boxes: Box[];
   swimlanes: Record<string, Swimlane>;
   relations: Relation[];
+  gwtColumns: GwtColumn[];
   previousFrame?: EmFrame;
   previousSwimlaneNumber?: number;
   maxR: number;
+  maxY: number;
   sortedSwimlanesArray: Swimlane[];
 }
 
@@ -139,12 +175,28 @@ export type RelationPositioned = {
   targetBox: Box;
 } & EventBase;
 
+export const PositionGwtColumnKind = 'position gwt column';
+export type PositionGwtColumn = {
+  sourceBox: Box;
+  scenarios: GwtScenario[];
+  dimension: Dimension;
+} & CommandBase;
+
+export const GwtColumnPositionedKind = 'gwt column positioned';
+export type GwtColumnPositioned = {
+  sourceFrameName: string;
+  scenarios: GwtScenario[];
+  dimension: Dimension;
+  x: number;
+  y: number;
+} & EventBase;
+
 /**
  * Decider & Event Sourcing support
  */
 
-export type Command = PositionFrame | PositionRelation;
-export type Event = FramePositioned | RelationPositioned;
+export type Command = PositionFrame | PositionRelation | PositionGwtColumn;
+export type Event = FramePositioned | RelationPositioned | GwtColumnPositioned;
 export interface CommandBase {
   $kind: string;
 }

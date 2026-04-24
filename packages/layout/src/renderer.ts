@@ -1,6 +1,6 @@
 import type { BaseType, Selection } from 'd3';
 
-import type { Box, Relation, Swimlane, DiagramProps, Context } from './types.js';
+import type { Box, Relation, Swimlane, DiagramProps, Context, GwtScenario, GwtColumn, GwtSectionKind } from './types.js';
 
 export type D3Diagram = Selection<BaseType, unknown, HTMLElement, any>;
 
@@ -94,6 +94,127 @@ function renderD3Relation(
   };
 }
 
+function sectionLabel(kind: GwtSectionKind): string {
+  if (kind === 'given') return 'Given';
+  if (kind === 'when') return 'When';
+  return 'Then';
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function buildGwtScenarioHtml(scenario: GwtScenario, sourceFrameName: string): string {
+  const summary = escapeHtml(scenario.label || 'Scenario');
+  const source = escapeHtml(sourceFrameName);
+
+  let body = '';
+  let currentKind: GwtSectionKind | undefined;
+  for (const stmt of scenario.statements) {
+    if (stmt.kind !== currentKind) {
+      if (currentKind !== undefined) body += '</div>';
+      body += `<div class="em-gwt-section"><div class="em-gwt-section-label">${sectionLabel(stmt.kind)}</div>`;
+      currentKind = stmt.kind;
+    }
+    body += `<div class="em-gwt-statement" style="background:${stmt.visual.fill};border:1px solid ${stmt.visual.stroke};">${stmt.contentHtml}</div>`;
+  }
+  if (currentKind !== undefined) body += '</div>';
+
+  return `<details class="em-gwt-details" open="open">`
+    + `<summary class="em-gwt-summary"><span class="em-gwt-frame-ref">${source}</span> ${summary}</summary>`
+    + `<div class="em-gwt-body">${body}</div>`
+    + `</details>`;
+}
+
+function buildGwtColumnHtml(column: GwtColumn): string {
+  const scenarios = column.scenarios
+    .map((s) => `<div class="em-gwt-scenario">${buildGwtScenarioHtml(s, column.sourceFrameName)}</div>`)
+    .join('');
+  return `<div class="em-gwt-column" xmlns="http://www.w3.org/1999/xhtml">${scenarios}</div>`;
+}
+
+function renderD3GwtColumn(
+  diagram: Selection<BaseType, unknown, HTMLElement, any>,
+  _diagramProps: DiagramProps,
+) {
+  return (column: GwtColumn) => {
+    const g = diagram.append('g')
+      .attr('class', 'em-gwt-column-group')
+      .attr('data-gwt-orig-y', column.y);
+    const f = g
+      .append('foreignObject')
+      .attr('x', column.x)
+      .attr('y', column.y)
+      .attr('width', column.dimension.width)
+      .attr('height', column.dimension.height);
+
+    f.append('xhtml:div')
+      .attr('class', 'em-gwt-column-root')
+      .html(buildGwtColumnHtml(column));
+  };
+}
+
+export const GWT_RELAYOUT_JS = `var gap = parseFloat(svg.getAttribute('data-gwt-scenario-gap')) || 10;
+var bandTop = parseFloat(svg.getAttribute('data-gwt-band-top-y')) || 0;
+var baseW = parseFloat(svg.getAttribute('data-gwt-base-width')) || parseFloat(svg.getAttribute('width')) || 0;
+var baseH = parseFloat(svg.getAttribute('data-gwt-base-height')) || parseFloat(svg.getAttribute('height')) || 0;
+function relayout(){
+  var groups = Array.prototype.slice.call(svg.querySelectorAll('.em-gwt-column-group'));
+  if (groups.length === 0) return;
+  var items = groups.map(function(g, i){
+    var fo = g.querySelector('foreignObject');
+    var root = fo && fo.firstElementChild;
+    var measured = 0;
+    if (root) {
+      if (root.getBoundingClientRect) measured = root.getBoundingClientRect().height || 0;
+      if (!measured && root.scrollHeight) measured = root.scrollHeight;
+    }
+    return {
+      fo: fo,
+      x: parseFloat(fo.getAttribute('x')) || 0,
+      w: parseFloat(fo.getAttribute('width')) || 0,
+      origY: parseFloat(g.getAttribute('data-gwt-orig-y')) || 0,
+      i: i, h: measured, y: 0
+    };
+  });
+  var order = items.slice().sort(function(a, b){ return (a.origY - b.origY) || (a.i - b.i); });
+  var placed = [];
+  for (var k = 0; k < order.length; k++){
+    var it = order[k];
+    var y = bandTop;
+    var changed = true;
+    while (changed){
+      changed = false;
+      for (var j = 0; j < placed.length; j++){
+        var p = placed[j];
+        var ho = it.x < p.x + p.w && p.x < it.x + it.w;
+        if (!ho) continue;
+        var vo = y < p.y + p.h && p.y < y + it.h;
+        if (vo){ y = p.y + p.h + gap; changed = true; }
+      }
+    }
+    it.y = y;
+    placed.push(it);
+    it.fo.setAttribute('y', String(y));
+    it.fo.setAttribute('height', String(it.h));
+  }
+  var maxBottom = placed.reduce(function(m, p){ return Math.max(m, p.y + p.h); }, 0);
+  var H = Math.max(baseH, maxBottom);
+  svg.setAttribute('height', String(H));
+  svg.setAttribute('viewBox', '0 0 ' + (baseW || parseFloat(svg.getAttribute('width')) || 0) + ' ' + H);
+}
+var dts = svg.querySelectorAll('details');
+for (var i = 0; i < dts.length; i++) dts[i].addEventListener('toggle', relayout);
+relayout();`;
+
+export function attachGwtRelayout(svg: SVGSVGElement): void {
+  try {
+    new Function('svg', GWT_RELAYOUT_JS)(svg);
+  } catch (_err) {
+    /* ignore */
+  }
+}
+
 function renderD3Swimlane(
   diagram: Selection<BaseType, unknown, HTMLElement, any>,
   maxR: number,
@@ -129,6 +250,16 @@ export const draw_diagram = function (diagramProps: DiagramProps, state: Context
   state.boxes.forEach(renderD3Box(diagram, diagramProps));
   // console.debug(`[renderer] draw relations`);
   state.relations.forEach(renderD3Relation(diagram, diagramProps));
+  // console.debug(`[renderer] draw gwt columns`);
+  state.gwtColumns.forEach(renderD3GwtColumn(diagram, diagramProps));
+
+  if (state.gwtColumns.length > 0) {
+    const lastSw = state.sortedSwimlanesArray[state.sortedSwimlanesArray.length - 1];
+    const bandTopY = lastSw ? lastSw.y + lastSw.height + diagramProps.gwtBandGap : diagramProps.gwtBandGap;
+    diagram
+      .attr('data-gwt-band-top-y', bandTopY)
+      .attr('data-gwt-scenario-gap', diagramProps.gwtScenarioGap);
+  }
 
   const marker = diagram
     .append('defs')

@@ -1,5 +1,5 @@
 import type { EventModel } from 'event-modeling-language';
-import type { EmFrame, EmDataEntity } from 'event-modeling-language';
+import type { EmFrame, EmDataEntity, EmGwt, EmGwtStatement } from 'event-modeling-language';
 import { isEmResetFrame } from 'event-modeling-language';
 
 import type {
@@ -15,8 +15,13 @@ import type {
   Context,
   PositionFrame,
   PositionRelation,
+  PositionGwtColumn,
   FramePositioned,
   RelationPositioned,
+  GwtColumnPositioned,
+  GwtScenario,
+  GwtStatementBox,
+  GwtSectionKind,
   TextProps,
   DiagramProps,
   EventModelingDatabase,
@@ -24,8 +29,10 @@ import type {
 import {
   PositionFrameKind,
   PositionRelationKind,
+  PositionGwtColumnKind,
   FramePositionedKind,
   RelationPositionedKind,
+  GwtColumnPositionedKind,
 } from './types.js';
 
 import { LoggerDep } from './types_services.js';
@@ -185,6 +192,14 @@ const calculateTextProps = ({ log, calculateBoxDimensions }: CalculateTextPropsD
   return props;
 }
 
+const stripQuotes = (value: string | undefined): string | undefined => {
+  if (!value) return undefined;
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    return value.slice(1, -1);
+  }
+  return value;
+};
+
 export const create_db = (deps: Dependencies): EventModelingDatabase => {
   const { log, calculateBoxDimensions } = deps;
 
@@ -237,6 +252,42 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
       sortedSwimlanesArray: sortedSwimlanesArray(state.swimlanes),
     };
 
+    if (ast.gwtEntities && ast.gwtEntities.length > 0) {
+      const groups = new Map<string, { sourceBox: Box; gwts: EmGwt[] }>();
+      for (const gwt of ast.gwtEntities) {
+        const sourceFrameName = gwt.sourceFrame.$refText;
+        const sourceBox = state.boxes.find((b) => b.frame.name === sourceFrameName);
+        if (!sourceBox) {
+          log.debug(`gwt references unknown frame ${sourceFrameName}`);
+          continue;
+        }
+        let group = groups.get(sourceFrameName);
+        if (!group) {
+          group = { sourceBox, gwts: [] };
+          groups.set(sourceFrameName, group);
+        }
+        group.gwts.push(gwt);
+      }
+
+      for (const [, group] of groups) {
+        const scenarios: GwtScenario[] = group.gwts.map((gwt) => {
+          const { statements, dimension } = calculateGwtScenarioProps({ log, calculateBoxDimensions })(gwt, ast.dataEntities, diagramProps);
+          return { label: stripQuotes(gwt.label), statements, dimension };
+        });
+
+        const width = scenarios.reduce((m, s) => Math.max(m, s.dimension.width), diagramProps.gwtScenarioMinWidth);
+        const height = scenarios.reduce((acc, s) => acc + s.dimension.height, 0)
+          + Math.max(0, scenarios.length - 1) * diagramProps.gwtScenarioGap;
+
+        state = dispatch(state, {
+          $kind: PositionGwtColumnKind,
+          sourceBox: group.sourceBox,
+          scenarios,
+          dimension: { width, height },
+        });
+      }
+    }
+
     return state;
   }
 
@@ -266,6 +317,15 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
     labelCommandReadModelPrefix: 'C/RM: ',
     labelEvents: 'Events',
     labelEventsPrefix: 'Stream: ',
+    gwtBandGap: 30,
+    gwtScenarioPadding: 10,
+    gwtScenarioGap: 15,
+    gwtStatementGap: 6,
+    gwtSectionLabelHeight: 20,
+    gwtScenarioMinWidth: 220,
+    gwtScenarioHeaderHeight: 28,
+    gwtStatementVerticalPadding: 6,
+    gwtDefaultScenarioLabel: 'Scenario',
   };
 
   function getDiagramProps(): DiagramProps {
@@ -276,7 +336,9 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
     boxes: [],
     swimlanes: {},
     relations: [],
+    gwtColumns: [],
     maxR: 0,
+    maxY: 0,
     sortedSwimlanesArray: [],
   };
 
@@ -637,6 +699,136 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
     return [event];
   }
 
+  const calculateGwtStatementProps = ({ log, calculateBoxDimensions }: CalculateTextPropsDep) => (
+    stmt: EmGwtStatement,
+    kind: GwtSectionKind,
+    dataEntities: EmDataEntity[],
+    diagramProps: DiagramProps,
+  ): GwtStatementBox => {
+    const name = extractName(stmt.entityIdentifier) || '<unnamed>';
+    let semanticContent: ContentElement[] = [{ kind: 'b', valueLines: [name] }];
+
+    if (stmt.dataInlineValue) {
+      semanticContent.push({ kind: 'br' });
+      const stripped = stripInlineValue(stmt.dataInlineValue);
+      semanticContent.push({ kind: 'code', valueLines: [stripped] });
+    } else if (stmt.dataBlockValue) {
+      semanticContent.push({ kind: 'br' });
+      const stripped = stripBlockValue(stmt.dataBlockValue);
+      semanticContent.push({ kind: 'code', valueLines: stripped.split('\n'), params: { maxWidth: diagramProps.textMaxWidth } });
+    }
+
+    const dimensions = calculateBoxDimensions(semanticContent, { maxWidth: diagramProps.boxMaxWidth });
+    const contentHtml = semanticContent.flatMap(contentElementToHtml).join('\n');
+    const visual = calculateEntityVisualProps({ modelEntityType: stmt.modelEntityType } as EmFrame);
+
+    log.debug(`gwt stmt`, { kind, name, dimensions });
+
+    return {
+      kind,
+      modelEntityType: stmt.modelEntityType,
+      entityIdentifier: stmt.entityIdentifier,
+      contentHtml,
+      dimension: {
+        width: dimensions.width + 2 * diagramProps.boxTextPadding,
+        height: dimensions.height + 2 * diagramProps.gwtStatementVerticalPadding,
+      },
+      visual,
+    };
+  };
+
+  const calculateGwtScenarioProps = (dep: CalculateTextPropsDep) => (
+    gwt: EmGwt,
+    dataEntities: EmDataEntity[],
+    diagramProps: DiagramProps,
+  ): { statements: GwtStatementBox[]; dimension: { width: number; height: number } } => {
+    const builder = calculateGwtStatementProps(dep);
+    const statements: GwtStatementBox[] = [
+      ...(gwt.givenStatements || []).map((s) => builder(s, 'given', dataEntities, diagramProps)),
+      ...(gwt.whenStatements || []).map((s) => builder(s, 'when', dataEntities, diagramProps)),
+      ...(gwt.thenStatements || []).map((s) => builder(s, 'then', dataEntities, diagramProps)),
+    ];
+
+    const sections: GwtSectionKind[] = [];
+    for (const s of statements) {
+      if (sections[sections.length - 1] !== s.kind) sections.push(s.kind);
+    }
+
+    const maxStmtWidth = statements.reduce((m, s) => Math.max(m, s.dimension.width), 0);
+    const width = Math.max(diagramProps.gwtScenarioMinWidth, maxStmtWidth + 2 * diagramProps.gwtScenarioPadding);
+
+    let innerHeight = 0;
+    let currentKind: GwtSectionKind | undefined;
+    for (const s of statements) {
+      if (s.kind !== currentKind) {
+        innerHeight += diagramProps.gwtSectionLabelHeight;
+        currentKind = s.kind;
+      }
+      innerHeight += s.dimension.height + diagramProps.gwtStatementGap;
+    }
+    const height = diagramProps.gwtScenarioHeaderHeight + innerHeight + 2 * diagramProps.gwtScenarioPadding;
+
+    return { statements, dimension: { width, height } };
+  };
+
+  function decidePositionGwtColumn(state: Context, _command: Command): Event[] {
+    const command = _command as PositionGwtColumn;
+
+    const swimlaneBottom = state.sortedSwimlanesArray.length > 0
+      ? state.sortedSwimlanesArray[state.sortedSwimlanesArray.length - 1].y
+        + state.sortedSwimlanesArray[state.sortedSwimlanesArray.length - 1].height
+      : 0;
+    const bandTopY = swimlaneBottom + diagramProps.gwtBandGap;
+
+    const x = command.sourceBox.x;
+    const width = command.dimension.width;
+    const height = command.dimension.height;
+
+    let y = bandTopY;
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const other of state.gwtColumns) {
+        const horizOverlap = x < other.x + other.dimension.width && other.x < x + width;
+        if (!horizOverlap) continue;
+        const vertOverlap = y < other.y + other.dimension.height && other.y < y + height;
+        if (vertOverlap) {
+          y = other.y + other.dimension.height + diagramProps.gwtScenarioGap;
+          changed = true;
+        }
+      }
+    }
+
+    const event: GwtColumnPositioned = {
+      $kind: GwtColumnPositionedKind,
+      sourceFrameName: command.sourceBox.frame.name,
+      scenarios: command.scenarios,
+      dimension: command.dimension,
+      x,
+      y,
+    };
+    return [event];
+  }
+
+  function evolveGwtColumnPositioned(state: Context, _event: Event): Context {
+    const event = _event as GwtColumnPositioned;
+
+    const column = {
+      sourceFrameName: event.sourceFrameName,
+      x: event.x,
+      y: event.y,
+      dimension: event.dimension,
+      scenarios: event.scenarios,
+    };
+
+    return {
+      ...state,
+      gwtColumns: [...state.gwtColumns, column],
+      maxR: Math.max(state.maxR, event.x + event.dimension.width),
+      maxY: Math.max(state.maxY, event.y + event.dimension.height),
+    };
+  }
+
   function evolveRelationPositioned(state: Context, _event: Event): Context {
     const event = _event as RelationPositioned;
 
@@ -667,11 +859,13 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
   const deciders: Deciders = {
     [PositionFrameKind]: decidePositionFrame,
     [PositionRelationKind]: decidePositionRelation,
+    [PositionGwtColumnKind]: decidePositionGwtColumn,
   };
 
   const evolvers: Evolvers = {
     [FramePositionedKind]: evolveFramePositioned,
     [RelationPositionedKind]: evolveRelationPositioned,
+    [GwtColumnPositionedKind]: evolveGwtColumnPositioned,
   };
 
   function decide(state: Context, command: Command): Event[] {

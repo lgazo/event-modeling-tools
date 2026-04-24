@@ -1,0 +1,36 @@
+eventmodeling
+
+tf 01 cmd AddToCart { id: "p-1" }
+tf 02 evt CartUpdated ->> 01 [[CartUpdated02]]
+
+data CartUpdated02 {
+  items: [
+    { id: "p-1", qty: 1 }
+  ]
+}
+
+gwt 01 "happy path"
+  given
+    evt CartCreated
+  when
+    cmd AddToCart { id: "p-1" }
+  then
+    evt CartUpdated {
+      items: [
+        { id: "p-1", qty: 1 }
+      ]
+    }
+
+gwt 01 "duplicate add increments qty"
+  given
+    evt CartUpdated { items: [ { id: "p-1", qty: 1 } ] }
+  when
+    cmd AddToCart { id: "p-1" }
+  then
+    evt CartUpdated { items: [ { id: "p-1", qty: 2 } ] }
+
+gwt 02 'audit'
+  given
+    evt CartUpdated
+  then
+    rmo CartReadModel
