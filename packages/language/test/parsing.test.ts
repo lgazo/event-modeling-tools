@@ -125,7 +125,7 @@ timeframe 01 event Start
   test('should parse qualified names in model', async () => {
     document = await parse(`eventmodeling
 
-timeframe 02 screen Screen
+timeframe 02 ui UI
 tf 01 evt Product.PriceChanged
 tf 03 evt Cart.ItemAdded
 
@@ -144,7 +144,7 @@ tf 03 evt Cart.ItemAdded
   test('should parse both types of frames in model', async () => {
     document = await parse(`eventmodeling
 
-tf 02 screen Screen
+tf 02 ui UI
 resetframe 01 evt Product.PriceChanged
 tf 03 evt Cart.ItemAdded
 
@@ -320,12 +320,8 @@ tf 02 evt Bad ->> 01 { "a": { }
       expect(collectErrors(makeFrame('evt'), [makeFrame('pcr')])).toHaveLength(1);
     });
 
-    test('should allow cmd sourced from screen', () => {
-      expect(collectErrors(makeFrame('cmd'), [makeFrame('screen')])).toHaveLength(0);
-    });
-
-    test('should allow cmd sourced from scn', () => {
-      expect(collectErrors(makeFrame('cmd'), [makeFrame('scn')])).toHaveLength(0);
+    test('should allow cmd sourced from ui', () => {
+      expect(collectErrors(makeFrame('cmd'), [makeFrame('ui')])).toHaveLength(0);
     });
 
     test('should allow command sourced from processor', () => {
@@ -336,13 +332,13 @@ tf 02 evt Bad ->> 01 { "a": { }
       const errors = collectErrors(makeFrame('cmd'), [makeFrame('cmd')]);
       expect(errors).toHaveLength(1);
       expect(errors[0]).toContain('command');
-      expect(errors[0]).toContain('screen or processor');
+      expect(errors[0]).toContain('ui or processor');
     });
 
     test('should reject cmd sourced from evt', () => {
       const errors = collectErrors(makeFrame('cmd'), [makeFrame('evt')]);
       expect(errors).toHaveLength(1);
-      expect(errors[0]).toContain('screen or processor');
+      expect(errors[0]).toContain('ui or processor');
     });
 
     test('should allow rmo sourced from evt', () => {
@@ -364,14 +360,14 @@ tf 02 evt Bad ->> 01 { "a": { }
       expect(collectErrors(makeFrame('processor'), [makeFrame('cmd')])).toHaveLength(1);
     });
 
-    test('should allow screen sourced from rmo', () => {
-      expect(collectErrors(makeFrame('screen'), [makeFrame('rmo')])).toHaveLength(0);
+    test('should allow ui sourced from rmo', () => {
+      expect(collectErrors(makeFrame('ui'), [makeFrame('rmo')])).toHaveLength(0);
     });
 
-    test('should reject screen sourced from evt', () => {
-      const errors = collectErrors(makeFrame('scn'), [makeFrame('evt')]);
+    test('should reject ui sourced from evt', () => {
+      const errors = collectErrors(makeFrame('ui'), [makeFrame('evt')]);
       expect(errors).toHaveLength(1);
-      expect(errors[0]).toContain('screen');
+      expect(errors[0]).toContain('ui');
       expect(errors[0]).toContain('read model');
     });
 

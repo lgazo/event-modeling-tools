@@ -3,7 +3,7 @@
  *
  * Portions derived from mermaid-js/mermaid
  *   https://github.com/mermaid-js/mermaid
- *   PR #7588 (commit d50c423)
+ *   PR #7588 (commit d50c423), PR #7629 (commit 32c257e)
  *   Copyright (c) Yordis Prieto, MIT License
  *
  * Modifications and integration with event-modeling-tools:
@@ -21,7 +21,7 @@ const COMMAND_TYPES = new Set<string>(['cmd', 'command']);
 const EVENT_TYPES = new Set<string>(['evt', 'event']);
 const READMODEL_TYPES = new Set<string>(['rmo', 'readmodel']);
 const PROCESSOR_TYPES = new Set<string>(['pcr', 'processor']);
-const SCREEN_TYPES = new Set<string>(['scn', 'screen']);
+const UI_TYPES = new Set<string>(['ui']);
 
 /**
  * Register custom validation checks.
@@ -50,9 +50,9 @@ export class EventModelingValidator {
         if (COMMAND_TYPES.has(frame.modelEntityType)) {
             this.validateSources(
                 frame,
-                new Set([...SCREEN_TYPES, ...PROCESSOR_TYPES]),
+                new Set([...UI_TYPES, ...PROCESSOR_TYPES]),
                 'command',
-                'screen or processor',
+                'ui or processor',
                 accept
             );
         } else if (EVENT_TYPES.has(frame.modelEntityType)) {
@@ -61,8 +61,8 @@ export class EventModelingValidator {
             this.validateSources(frame, EVENT_TYPES, 'read model', 'event', accept);
         } else if (PROCESSOR_TYPES.has(frame.modelEntityType)) {
             this.validateSources(frame, READMODEL_TYPES, 'processor', 'read model', accept);
-        } else if (SCREEN_TYPES.has(frame.modelEntityType)) {
-            this.validateSources(frame, READMODEL_TYPES, 'screen', 'read model', accept);
+        } else if (UI_TYPES.has(frame.modelEntityType)) {
+            this.validateSources(frame, READMODEL_TYPES, 'ui', 'read model', accept);
         }
     }
 

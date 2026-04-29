@@ -387,8 +387,7 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
     const sw = findSwimlaneByNamespace(swimlanes, namespace);
 
     switch (frame.modelEntityType) {
-      case 'scn':
-      case 'screen':
+      case 'ui':
       case 'pcr':
       case 'processor':
         if (sw) {
@@ -439,8 +438,7 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
 
   function calculateEntityVisualProps(frame: EmFrame): VisualProps {
     switch (frame.modelEntityType) {
-      case 'scn':
-      case 'screen':
+      case 'ui':
         return {
           fill: 'white',
           stroke: '#dbdada',
