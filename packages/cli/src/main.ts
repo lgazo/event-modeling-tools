@@ -9,6 +9,7 @@ import * as url from 'node:url';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { generateSvg } from './svg.js';
+import { generateDrawio } from './drawio.js';
 const __dirname = url.fileURLToPath(new URL('.', import.meta.url));
 
 const packagePath = path.resolve(__dirname, '..', 'package.json');
@@ -26,6 +27,13 @@ export const svgAction = async (fileName: string, opts: GenerateOptions): Promis
     const model = await extractAstNode<EventModel>(fileName, services);
     const generatedFilePath = generateSvg(model, fileName, opts.destination);
     console.log(chalk.green(`SVG generated successfully: ${generatedFilePath}`));
+};
+
+export const drawioAction = async (fileName: string, opts: GenerateOptions): Promise<void> => {
+    const services = createEventModelingServices(NodeFileSystem).EventModeling;
+    const model = await extractAstNode<EventModel>(fileName, services);
+    const generatedFilePath = generateDrawio(model, fileName, opts.destination);
+    console.log(chalk.green(`DrawIO diagram generated successfully: ${generatedFilePath}`));
 };
 
 export type GenerateOptions = {
@@ -51,5 +59,11 @@ export default function(): void {
         .option('-d, --destination <dir>', 'destination directory of generating')
         .description('generates SVG for a source file')
         .action(svgAction);
+    program
+        .command('drawio')
+        .argument('<file>', `source file (possible file extensions: ${fileExtensions})`)
+        .option('-d, --destination <dir>', 'destination directory of generating')
+        .description('generates DrawIO (mxGraph XML) diagram for a source file')
+        .action(drawioAction);
     program.parse(process.argv);
 }

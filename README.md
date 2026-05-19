@@ -52,7 +52,7 @@ Obsidian plugin renders `evml` code blocks in Markdown in the default Markdown v
 - [ ] Obsidian Plugin in the Community store
 - [ ] Expand DSL - Given-When-Then, Diagram configuration, Swimlane labels, Slices,...
 - [ ] Completness check Langium Validator
-- [ ] Additional output to Draw.io XML
+- [x] Additional output to Draw.io XML
 - [ ] VS Code Extension command support for different outputs
 
 ## Related Resources

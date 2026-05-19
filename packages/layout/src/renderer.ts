@@ -94,17 +94,17 @@ function renderD3Relation(
   };
 }
 
-function sectionLabel(kind: GwtSectionKind): string {
+export function sectionLabel(kind: GwtSectionKind): string {
   if (kind === 'given') return 'Given';
   if (kind === 'when') return 'When';
   return 'Then';
 }
 
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function buildGwtScenarioHtml(scenario: GwtScenario, sourceFrameName: string): string {
+export function buildGwtScenarioHtml(scenario: GwtScenario, sourceFrameName: string): string {
   const summary = escapeHtml(scenario.label || 'Scenario');
   const source = escapeHtml(sourceFrameName);
 
@@ -126,7 +126,7 @@ function buildGwtScenarioHtml(scenario: GwtScenario, sourceFrameName: string): s
     + `</details>`;
 }
 
-function buildGwtColumnHtml(column: GwtColumn): string {
+export function buildGwtColumnHtml(column: GwtColumn): string {
   const scenarios = column.scenarios
     .map((s) => `<div class="em-gwt-scenario">${buildGwtScenarioHtml(s, column.sourceFrameName)}</div>`)
     .join('');
