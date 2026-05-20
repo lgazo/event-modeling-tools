@@ -1,0 +1,42 @@
+{
+  "env": {
+    "EDITOR": "claude-tmux-editor",
+    "VISUAL": "claude-tmux-editor"
+  },
+  "permissions": {
+    "allow": [
+      "mcp__drawio__list-paged-model",
+      "mcp__drawio__list-layers",
+      "mcp__drawio__get-shape-categories",
+      "mcp__drawio__get-shapes-in-category",
+      "mcp__drawio__add-rectangle",
+      "mcp__drawio__add-edge",
+      "mcp__drawio__edit-cell",
+      "mcp__drawio__create-layer",
+      "mcp__drawio__set-active-layer",
+      "Bash(roam --help)",
+      "Bash(roam search:*)",
+      "Bash(roam schema:*)",
+      "Bash(roam -h)",
+      "Bash(env)",
+      "WebFetch(domain:github.com)",
+      "Bash(roam understand:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/rtk-rewrite.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "superpowers@superpowers-marketplace": true
+  }
+}

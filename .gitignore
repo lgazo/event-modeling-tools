@@ -10,3 +10,5 @@ syntaxes/
 *.tsbuildinfo
 *.vsix
 /generated/
+
+.roam/
