@@ -351,14 +351,11 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
   }
 
 
-  function findSwimlaneByNamespace(
+  function findSwimlaneByLabel(
     swimlanes: Record<string, Swimlane>,
-    namespace: string | undefined
+    label: string
   ): Swimlane | undefined {
-    if (!namespace || namespace.length === 0) {
-      return undefined;
-    }
-    return Object.values(swimlanes).find((swimlane) => swimlane.namespace === namespace);
+    return Object.values(swimlanes).find((swimlane) => swimlane.label === label);
   }
 
   function findNextAvailableIndex(
@@ -384,56 +381,57 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
     swimlanes: Record<string, Swimlane>
   ): SwimlaneProps {
     const namespace = extractNamespace(frame.entityIdentifier);
-    const sw = findSwimlaneByNamespace(swimlanes, namespace);
+
+    let boundaryMin: number;
+    let boundaryMax: number;
+    let defaultLabel: string;
+    let labelPrefix: string;
 
     switch (frame.modelEntityType) {
       case 'ui':
       case 'pcr':
       case 'processor':
-        if (sw) {
-          return {
-            index: sw.index,
-            label: sw.namespace || diagramProps.labelUiAutomation,
-          };
-        } else if (namespace) {
-          return {
-            index: findNextAvailableIndex(swimlanes, 0, 100),
-            label: diagramProps.labelUiAutomationPrefix + namespace,
-          };
-        }
-        return { index: 0, label: diagramProps.labelUiAutomation };
+        boundaryMin = 0;
+        boundaryMax = 100;
+        defaultLabel = diagramProps.labelUiAutomation;
+        labelPrefix = diagramProps.labelUiAutomationPrefix;
+        break;
       case 'rmo':
       case 'readmodel':
       case 'cmd':
       case 'command':
-        if (sw) {
-          return {
-            index: sw.index,
-            label: sw.namespace || diagramProps.labelCommandReadModel,
-          };
-        } else if (namespace) {
-          return {
-            index: findNextAvailableIndex(swimlanes, 100, 200),
-            label: diagramProps.labelCommandReadModelPrefix + namespace,
-          };
-        }
-        return { index: 100, label: diagramProps.labelCommandReadModel };
+        boundaryMin = 100;
+        boundaryMax = 200;
+        defaultLabel = diagramProps.labelCommandReadModel;
+        labelPrefix = diagramProps.labelCommandReadModelPrefix;
+        break;
       case 'evt':
       case 'event':
       default:
-        if (sw) {
-          return {
-            index: sw.index,
-            label: sw.namespace || diagramProps.labelEvents,
-          };
-        } else if (namespace) {
-          return {
-            index: findNextAvailableIndex(swimlanes, 200, 300),
-            label: diagramProps.labelEventsPrefix + namespace,
-          };
-        }
-        return { index: 200, label: diagramProps.labelEvents };
+        boundaryMin = 200;
+        boundaryMax = 300;
+        defaultLabel = diagramProps.labelEvents;
+        labelPrefix = diagramProps.labelEventsPrefix;
+        break;
     }
+
+    if (!namespace) {
+      return { index: boundaryMin, label: defaultLabel };
+    }
+
+    // The label prefix is unique per entity-type band (UI/A:, C/RM:, Stream:),
+    // so matching on the full label keeps the lookup scoped to its own band -
+    // the same namespace still gets one swimlane per band, not one shared lane.
+    const label = labelPrefix + namespace;
+    const existing = findSwimlaneByLabel(swimlanes, label);
+    if (existing) {
+      return { index: existing.index, label: existing.label, namespace };
+    }
+    return {
+      index: findNextAvailableIndex(swimlanes, boundaryMin, boundaryMax),
+      label,
+      namespace,
+    };
   }
 
   function calculateEntityVisualProps(frame: EmFrame): VisualProps {
@@ -538,6 +536,7 @@ export const create_db = (deps: Dependencies): EventModelingDatabase => {
       swimlane = {
         index: swimlaneProps.index,
         label: swimlaneProps.label,
+        namespace: swimlaneProps.namespace,
         r: 0,
         y: swimlaneProps.index * diagramProps.swimlaneMinHeight + diagramProps.swimlaneGap,
         height: diagramProps.swimlaneMinHeight,
