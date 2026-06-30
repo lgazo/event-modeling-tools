@@ -70,17 +70,17 @@ function extractName(entityIdentifier: string): string | undefined {
   return entityIdentifier;
 }
 
-function stripInlineValue(dataInlineValue: string): string {
+export function stripInlineValue(dataInlineValue: string): string {
   let toHtml = dataInlineValue;
   toHtml = toHtml.substring(toHtml.indexOf('{') + 1);
-  toHtml = toHtml.substring(0, toHtml.lastIndexOf('}') - 1);
+  toHtml = toHtml.substring(0, toHtml.lastIndexOf('}'));
   return toHtml;
 }
 
-function stripBlockValue(value: string): string {
+export function stripBlockValue(value: string): string {
   let toHtml = value;
   toHtml = toHtml.substring(toHtml.indexOf('{\n') + 2);
-  toHtml = toHtml.substring(0, toHtml.lastIndexOf('}') - 1);
+  toHtml = toHtml.substring(0, toHtml.lastIndexOf('}'));
   return toHtml;
 }
 
