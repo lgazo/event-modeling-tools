@@ -22,18 +22,36 @@ const packageContent = await fs.readFile(packagePath, 'utf-8');
 //     console.log(chalk.green(`JavaScript code generated successfully: ${generatedFilePath}`));
 // };
 
+/**
+ * Runs a subcommand body, reporting any failure on stderr and exiting non-zero.
+ * The `svg` and `drawio` subcommands are public API: they must never leave the
+ * process on a zero exit code when generation failed.
+ */
+const runAction = async (action: () => Promise<string>, successMessage: (path: string) => string): Promise<void> => {
+    try {
+        const generatedFilePath = await action();
+        console.log(chalk.green(successMessage(generatedFilePath)));
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(chalk.red(message));
+        process.exit(1);
+    }
+};
+
 export const svgAction = async (fileName: string, opts: GenerateOptions): Promise<void> => {
-    const services = createEventModelingServices(NodeFileSystem).EventModeling;
-    const model = await extractAstNode<EventModel>(fileName, services);
-    const generatedFilePath = generateSvg(model, fileName, opts.destination);
-    console.log(chalk.green(`SVG generated successfully: ${generatedFilePath}`));
+    await runAction(async () => {
+        const services = createEventModelingServices(NodeFileSystem).EventModeling;
+        const model = await extractAstNode<EventModel>(fileName, services);
+        return generateSvg(model, fileName, opts.destination);
+    }, generatedFilePath => `SVG generated successfully: ${generatedFilePath}`);
 };
 
 export const drawioAction = async (fileName: string, opts: GenerateOptions): Promise<void> => {
-    const services = createEventModelingServices(NodeFileSystem).EventModeling;
-    const model = await extractAstNode<EventModel>(fileName, services);
-    const generatedFilePath = generateDrawio(model, fileName, opts.destination);
-    console.log(chalk.green(`DrawIO diagram generated successfully: ${generatedFilePath}`));
+    await runAction(async () => {
+        const services = createEventModelingServices(NodeFileSystem).EventModeling;
+        const model = await extractAstNode<EventModel>(fileName, services);
+        return generateDrawio(model, fileName, opts.destination);
+    }, generatedFilePath => `DrawIO diagram generated successfully: ${generatedFilePath}`);
 };
 
 export type GenerateOptions = {
@@ -43,7 +61,11 @@ export type GenerateOptions = {
 export default function(): void {
     const program = new Command();
 
-    program.version(JSON.parse(packageContent).version);
+    program
+        .name('evml')
+        .description('Event Modeling CLI')
+        .version(JSON.parse(packageContent).version)
+        .showHelpAfterError();
 
     const fileExtensions = EventModelingLanguageMetaData.fileExtensions.join(', ');
     // program

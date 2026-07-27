@@ -1,24 +1,26 @@
 {
     "name": "event-modeling-cli",
-    "description": "Event Modeling CLI",
-    "version": "0.0.1",
+    "description": "Event Modeling CLI - render .evml models to SVG and DrawIO diagrams",
+    "version": "1.0.0",
     "type": "module",
     "engines": {
-        "node": ">=20.10.0",
-        "pnpm": ">=10.14.0"
+        "node": ">=20.10.0"
     },
     "files": [
+        "CHANGELOG.md",
         "bin",
         "out",
         "src"
     ],
+    "main": "./out/main.js",
     "bin": {
-        "event-modeling-cli": "./bin/cli.js"
+        "evml": "./bin/cli.js"
     },
     "scripts": {
         "clean": "shx rm -fr *.tsbuildinfo out",
         "build": "tsc -b tsconfig.json",
         "build:clean": "pnpm run clean && pnpm run build",
+        "prepublishOnly": "pnpm run build",
         "dev": "tsc -b --watch"
     },
     "dependencies": {
@@ -27,6 +29,30 @@
         "chalk": "~5.3.0",
         "commander": "~11.1.0",
         "langium": "4.1.0"
+    },
+    "devDependencies": {
+        "shx": "~0.4.0"
+    },
+    "keywords": [
+        "cli",
+        "eventmodeling",
+        "event modeling",
+        "dsl",
+        "diagram",
+        "svg",
+        "drawio",
+        "event sourcing"
+    ],
+    "author": "Ladislav Gazo",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/lgazo/event-modeling-tools",
+    "bugs": {
+        "url": "https://github.com/lgazo/event-modeling-tools/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lgazo/event-modeling-tools.git",
+        "directory": "packages/cli"
     },
     "volta": {
         "node": "20.19.2",

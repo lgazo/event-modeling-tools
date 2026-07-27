@@ -1,0 +1,65 @@
+name: Release
+
+# Publishes the four public npm packages. Triggered by pushing a `v*` tag, e.g.
+#
+#   git tag v1.0.0 && git push origin v1.0.0
+#
+# All four packages are versioned in lockstep (see .changeset/config.json), so
+# the tag maps to exactly one version shared by every package.
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Pack only, do not publish"
+        type: boolean
+        default: true
+
+jobs:
+  publish:
+    name: Publish to npmjs.com
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20.x"
+          registry-url: "https://registry.npmjs.org"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm run build:clean
+
+      - name: Test
+        run: pnpm run test
+
+      - name: Verify published tarball contents
+        run: node scripts/verify-packages.mjs
+
+      - name: Verify tag matches package versions
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: node scripts/verify-release-tag.mjs "${GITHUB_REF_NAME}"
+
+      - name: Publish
+        if: startsWith(github.ref, 'refs/tags/v') && inputs.dry_run != true
+        run: pnpm -r publish --access public --provenance --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_CONFIG_PROVENANCE: "true"

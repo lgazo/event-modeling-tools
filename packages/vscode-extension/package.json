@@ -2,6 +2,7 @@
     "name": "event-modeling-vscode-extension",
     "description": "The Event Modeling support for VSCode",
     "version": "0.0.1",
+    "private": true,
     "displayName": "Event Modeling",
     "type": "module",
     "engines": {

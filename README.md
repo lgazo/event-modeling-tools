@@ -3,7 +3,8 @@
 The project combines multiple tools helping you with Event Modeling, such as Domain Specific Language (DSL).
 
 [![Discord channel](https://shields.io/static/v1?logo=discord&message=eventmodeling&label=chat&color=5865F2&logoColor=white)](https://discord.com/channels/1139074016448098375/1139074016448098378)
-[![Build project](https://github.com/lgazo/event-modeling-tools/actions/workflows/event-modeling-ci.yml/badge.svg)](https://github.com/lgazo/event-modeling-tools/actions/workflows/event-modeling-ci.yml)
+[![CI](https://github.com/lgazo/event-modeling-tools/actions/workflows/ci.yml/badge.svg)](https://github.com/lgazo/event-modeling-tools/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/event-modeling-cli?label=event-modeling-cli)](https://www.npmjs.com/package/event-modeling-cli)
 
 > [!NOTE]
 > Previously the project's name was `event-modeling-dsl`.
@@ -30,13 +31,46 @@ For [VS Codium](https://vscodium.com/) use [Open VSX Registry](https://open-vsx.
 
 ## Command Line Interface
 
-The command line interface can generate SVG file out of `.evml` text definition.
+The command line interface generates an SVG or a Draw.io diagram out of an `.evml` text definition.
 
-Just call the CLI script like this:
+### Install
 
 ```bash
-./packages/cli/bin/cli.js svg ./packages/layout-headless/test/multiple-source-frames.evml
+npm install -g event-modeling-cli
 ```
+
+This puts a single stable binary named **`evml`** on your `PATH`.
+
+### Usage
+
+```bash
+evml svg <file> [-d <dir>]      # generate SVG
+evml drawio <file> [-d <dir>]   # generate Draw.io (mxGraph XML) diagram
+evml --version
+evml --help
+```
+
+`-d, --destination <dir>` sets the output directory; it is created if missing.
+It defaults to a `generated/` directory next to the input file.
+
+Both subcommands exit `0` on success and non-zero on failure, writing all
+diagnostics to stderr. They are treated as **public API**: a breaking change to
+either one, or to the `evml` binary name, is a major version bump.
+
+### Use as a library
+
+```bash
+npm install event-modeling-language
+```
+
+```js
+import { createEventModelingServices } from 'event-modeling-language';
+```
+
+`event-modeling-cli` and `event-modeling-language` are released together at
+matching versions, so pinning `^1.0.0` on both can never produce a skewed pair.
+
+Supported Node.js: **>= 20.10.0**.
 
 ## Obsidian Plugin
 
@@ -48,7 +82,7 @@ Obsidian plugin renders `evml` code blocks in Markdown in the default Markdown v
 - [x] Extract rendering to SVG ([available only in Mermaid fork](https://github.com/lgazo/mermaid/tree/feature/event-modeling-diagram))
 - [x] Obsidian Plugin
 - [x] CLI
-- [ ] CLI in npm store
+- [x] CLI in npm store
 - [ ] Obsidian Plugin in the Community store
 - [ ] Expand DSL - Given-When-Then, Diagram configuration, Swimlane labels, Slices,...
 - [ ] Completness check Langium Validator
@@ -58,5 +92,7 @@ Obsidian plugin renders `evml` code blocks in Markdown in the default Markdown v
 ## Related Resources
 
 [Development](./DEVELOPMENT.md)
+
+[Releasing](./RELEASING.md)
 
 [Examples of SVG output based on the DSL](https://github.com/lgazo/mermaid-eventmodeling-examples)

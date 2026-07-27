@@ -1,15 +1,17 @@
 {
     "name": "event-modeling-language",
     "description": "Event Modeling text DSL language",
-    "version": "0.0.1",
+    "version": "1.0.0",
     "type": "module",
     "engines": {
-        "node": ">=20.10.0",
-        "pnpm": ">=10.14.0"
+        "node": ">=20.10.0"
     },
     "files": [
+        "CHANGELOG.md",
         "out",
-        "src"
+        "src",
+        "syntaxes",
+        "langium-config.json"
     ],
     "main": "./out/index.js",
     "module": "./out/index.js",
@@ -32,6 +34,7 @@
         "build:clean": "pnpm run clean && pnpm run build",
         "langium:generate": "langium generate",
         "langium:watch": "langium generate --watch",
+        "prepublishOnly": "pnpm run build",
         "test": "vitest run"
     },
     "dependencies": {
@@ -39,7 +42,27 @@
     },
     "devDependencies": {
         "langium-cli": "~4.1.0",
+        "shx": "~0.4.0",
         "vitest": "~3.1.3"
+    },
+    "keywords": [
+        "dsl",
+        "eventmodeling",
+        "event modeling",
+        "langium",
+        "LSP",
+        "event sourcing"
+    ],
+    "author": "Ladislav Gazo",
+    "license": "Apache-2.0",
+    "homepage": "https://github.com/lgazo/event-modeling-tools",
+    "bugs": {
+        "url": "https://github.com/lgazo/event-modeling-tools/issues"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/lgazo/event-modeling-tools.git",
+        "directory": "packages/language"
     },
     "volta": {
         "node": "20.19.2",

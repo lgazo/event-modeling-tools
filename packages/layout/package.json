@@ -1,15 +1,19 @@
 {
   "name": "event-modeling-layout",
-  "version": "0.0.1",
-  "description": "",
+  "version": "1.0.0",
+  "description": "Layout engine for Event Modeling diagrams",
   "type": "module",
+  "engines": {
+    "node": ">=20.10.0"
+  },
   "main": "./out/index.js",
   "module": "./out/index.js",
   "scripts": {
     "build": "tsc -b tsconfig.json",
     "dev": "tsc -w -b tsconfig.json",
-    "clean": "shx rm -rf out && shx rm tsconfig.tsbuildinfo",
-    "test": "vitest run",
+    "clean": "shx rm -rf out && shx rm -f tsconfig.tsbuildinfo",
+    "prepublishOnly": "pnpm run build",
+    "test": "vitest run --passWithNoTests",
     "test:debug": "vitest --inspect --inspect-brk=127.0.0.1:9289 --no-file-parallelism"
   },
   "exports": {
@@ -20,6 +24,7 @@
     }
   },
   "files": [
+    "CHANGELOG.md",
     "out"
   ],
   "typesVersions": {
@@ -29,9 +34,23 @@
       ]
     }
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "eventmodeling",
+    "event modeling",
+    "layout",
+    "diagram"
+  ],
+  "author": "Ladislav Gazo",
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/lgazo/event-modeling-tools",
+  "bugs": {
+    "url": "https://github.com/lgazo/event-modeling-tools/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lgazo/event-modeling-tools.git",
+    "directory": "packages/layout"
+  },
   "packageManager": "pnpm@10.14.0",
   "dependencies": {
     "d3": "^7.9.0",
@@ -40,6 +59,7 @@
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
+    "shx": "~0.4.0",
     "vitest": "~3.1.3"
   }
 }
