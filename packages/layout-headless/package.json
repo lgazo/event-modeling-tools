@@ -14,6 +14,7 @@
     "clean": "shx rm -rf out && shx rm -f tsconfig.tsbuildinfo",
     "prepublishOnly": "pnpm run build",
     "test": "vitest run --passWithNoTests",
+    "snapshots:update": "node test/update-snapshots.mjs",
     "test:debug": "vitest --inspect --inspect-brk=127.0.0.1:9289 --no-file-parallelism"
   },
   "exports": {

@@ -30,13 +30,27 @@ describe('stripInlineValue', () => {
 
 describe('stripBlockValue', () => {
   test('keeps the last character of a block data spec', () => {
-    // Block notation: `data Foo {\n  ...lines...\n}`. The buggy version
-    // chopped the trailing newline (and on the last line, the last char).
+    // Block notation: `data Foo {\n  ...lines...\n}`. The buggy version used
+    // `lastIndexOf('}') - 1`, chopping the last character of the final line.
     const input = '{\n  item: string\n  quantity: number\n}';
-    expect(stripBlockValue(input)).toBe('  item: string\n  quantity: number\n');
+    expect(stripBlockValue(input)).toBe('  item: string\n  quantity: number');
   });
 
   test('keeps single-line block content intact', () => {
-    expect(stripBlockValue('{\n  field: value\n}')).toBe('  field: value\n');
+    expect(stripBlockValue('{\n  field: value\n}')).toBe('  field: value');
+  });
+
+  test('drops the structural newline before the closing brace', () => {
+    // The char immediately before `}` is always the newline that terminates
+    // the last content line — it is part of the delimiter, not the content.
+    // Keeping it renders as a trailing blank line inside <pre> and grows
+    // every box by one line height.
+    expect(stripBlockValue('{\n  price: number\n}')).not.toMatch(/\n$/);
+  });
+
+  test('preserves interior blank lines', () => {
+    // Only the single trailing newline is structural; blank lines the author
+    // wrote inside the block are content and must survive.
+    expect(stripBlockValue('{\n  a: 1\n\n  b: 2\n}')).toBe('  a: 1\n\n  b: 2');
   });
 });

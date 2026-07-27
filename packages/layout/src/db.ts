@@ -81,7 +81,11 @@ export function stripBlockValue(value: string): string {
   let toHtml = value;
   toHtml = toHtml.substring(toHtml.indexOf('{\n') + 2);
   toHtml = toHtml.substring(0, toHtml.lastIndexOf('}'));
-  return toHtml;
+  // Block notation is `{\n ...lines... \n}`, so the char before the closing
+  // brace is always the newline that ends the last content line. It is
+  // structural, not content: keeping it renders as a trailing blank line
+  // inside <pre> and grows every box by one line height.
+  return toHtml.replace(/\n$/, '');
 }
 
 export type ContentElement = {
