@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -b -noEmit -v && node esbuild.config.mjs --prod",
-    "clean": "shx rm -rf out && shx rm tsconfig.tsbuildinfo",
+    "clean": "shx rm -rf out && shx rm -f tsconfig.tsbuildinfo",
     "test": "echo 'No tests yet'",
     "version": "node version-bump.mjs && git add manifest.json versions.json"
   },
