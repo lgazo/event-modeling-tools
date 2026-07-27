@@ -46,7 +46,11 @@ describe('Layout tests', () => {
         if (!existsSync('./out/test')) {
             mkdirSync('./out/test');
         }
-        evml_names.forEach(async (evml_name) => {
+        // Must be a sequential for..of, not forEach(async ...): an async
+        // callback passed to forEach is never awaited, so a failing assertion
+        // escapes as an unhandled rejection and the test still reports as
+        // passing. That silently hid stale snapshots.
+        for (const evml_name of evml_names) {
             const evml = readFileSync(`./test/${evml_name}.evml`).toString();
             document = await parse(evml);
             // console.log(`ast`, document.parseResult)
@@ -60,8 +64,8 @@ describe('Layout tests', () => {
             // const out_path = `./out/test/${evml_name}.emdsl.svg`;
             // writeFileSync(out_path, svg_string, 'utf-8');
             const snap = readFileSync(`./test/svg_snapshots/${evml_name}.emdsl.svg`)
-            expect(snap.toString()).equals(svg_string);
-        });
+            expect(svg_string, `snapshot mismatch for ${evml_name}`).equals(snap.toString());
+        }
     });
 
     test('should render gwt scenarios grouped into columns under related timeframes', async () => {
