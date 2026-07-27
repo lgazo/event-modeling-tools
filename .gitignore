@@ -12,3 +12,6 @@ syntaxes/
 /generated/
 
 .roam/
+.lapai/
+.understand-anything/
+.run-cc
